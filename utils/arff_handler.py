@@ -20,10 +20,9 @@ def parser(arq):
                 elif l1[0] == '@data' or l1[0] == '@DATA':
                     state = 'b'
             elif state == 'b':
-                x = l.split(',')  # transforma a linha do arquivo em vetor
+                x = l.split(',')[:-1]  # transforma a linha do arquivo em vetor sem a classe, pois trata-se do kmeans
                 for i in range(0, len(x)):
-                    if re.match('(real|integer)',conf.attr.keys()[i]): #se o atributo for um número
-                        x[i] = int(x[i])
+                    x[i] = float(x[i])
                 conf.data.append(x)
             else:
                 raise Exception("Erro na leitura do ARFF")

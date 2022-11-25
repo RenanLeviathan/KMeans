@@ -6,40 +6,70 @@ import math
 
 def exec(K=1, M=1, arq=""):
 	parser(arq) #interpreta o arquivo arff
-	for i in range(K): #definição dos centros iniciais
-		k = randrange(0, len(conf.data))
-		conf.centroids[conf.data[k]] = []
+	matriz = []
+	iniciais = []
+	for k in range(K): #definição dos centros iniciais
+		novo = randrange(0, len(conf.data))
+		iniciais.append(novo)
+		conf.clusters[k] = {novo}
 	#calcula cada ponto da base
-	o = 0
-	while o < M:
-		for x in conf.data:
-			minima = math.inf
-			c_min = []
-			for c,v in conf.centroids.items(): #procura o centroide mais próximo de x
-				if c != x: #não pode calcular a instância consigo mesma
-					if euclidiana(c,x) < minima:
-						c_min = c
-			conf.add_to_centroid(c_min,x)
+	o = 1
+	# forma a matriz de distância
+	m = len(conf.data)  # numero de instâncias
+	for i in range(m+K): #inicializa a matriz incluindo o espaço dos centroides
+		matriz.append([0 for j in range(m+K)])
 
+	for i in range(m):
+		for j in range(m):
+			if i != j:
+				matriz[i][j] = euclidiana(conf.data[i], conf.data[j])
+	#atualiza a distância com os centros
+	for i in range(K):
+		for j in range(m):
+			if i != j:
+				matriz[m+i][j] = euclidiana(conf.data[iniciais[i]], conf.data[j])
 
-		#reposicionamento do centroide
-		for c,v in conf.centroids.items():
-			t = c + v #concatena os vetores para calcular a média
-			n = len(t) # número de instâncias do centroide
-			m = len(t[0]) #tamanho de cada instância
-			centro = [] #novo centro com as médias de cada xj
-			for j in range(0, m):
-				s = 0  # usado para calcular a media
-				for i in range(0, n):
+	#primeira iteração do kmeans considera os k centros iniciais
+	for j in range(m):
+		minima = math.inf
+		min_idx = 0
+		for i in range(K):
+			if matriz[m+i][j] < minima:
+				minima = matriz[m+i][j]
+				min_idx = i #atualiza o cluster mais próximo da instância
+		conf.clusters[min_idx].add(j) #coloca a instância no cluster
+
+	while o <= M:
+		#reposicionamento de centroide
+		for c in range(K):
+			t = [] #inicia lista temporária com todos os elementos do cluster
+			for x in conf.clusters[c]:
+				t.append(conf.data[x])
+			centro = [0 for i in range(len(conf.data[0]))]
+			for j in range(len(t[0])):
+				s = 0
+				for i in range(len(t)):
 					s += t[i][j]
-				centro[j] = s/n
-			conf.centroids.pop(c) #remove o centro antigo
-			conf.centroids[centro] = [] #atualiza o centroide
+				centro[j] = s/len(t) # atualiza a média
+			#atualiza a matriz de distância com o centro
+			for j in range(m):
+				matriz[m+c][j] = euclidiana(centro, conf.data[j])
+			print("Iteração {}".format(o))
+			print("Média do cluster {} -> {}".format(c, centro))
+			print("Instâncias clusterizadas em {}: {}".format(c, len(conf.clusters[c])))
 
-		print("Iteração {}".format(m+1))
-		for i, v in conf.centroids.items():
-			print("Centroide: ")
-			print(i)
-			print("instâncias")
-			print(v)
+		# renova os clusters
+		for k in range(K):
+				conf.clusters[k] = set()
+
+		#atualização de clusters
+		for j in range(m):
+			minima = math.inf
+			min_idx = 0
+			for k in range(K):
+				if matriz[m+k][j] < minima:
+					minima = matriz[m+k][j]
+					min_idx = k
+				conf.clusters[min_idx].add(j)
+
 		o = o + 1
